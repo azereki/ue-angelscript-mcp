@@ -866,11 +866,74 @@ If it can be used from Blueprint, it should be usable from Angelscript.
 
 Classes in C++ that are marked with `UCLASS()` are automatically bound either when they have the `BlueprintType` specifier, or if they contain any functions with `BlueprintCallable`.
 
-Classes can be skipped for automatic bindings by adding the `NotInAngelscript` metadata.
+For example, this C++ class:
+
+```cpp
+UCLASS(BlueprintType)
+class UHealthComponent : public UActorComponent
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Health")
+    float MaxHealth = 100.f;
+
+    UPROPERTY(BlueprintReadOnly, Category = "Health")
+    float CurrentHealth;
+
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    void TakeDamage(float Amount);
+
+    UFUNCTION(BlueprintImplementableEvent)
+    void OnDeath();
+};
+```
+
+Becomes usable in Angelscript as:
+
+```angelscript
+// All BlueprintReadWrite/ReadOnly properties and BlueprintCallable functions
+// are available automatically — no manual binding needed.
+auto HealthComp = Player.GetComponentByClass(UHealthComponent::StaticClass());
+HealthComp.MaxHealth = 200.f;           // BlueprintReadWrite -> read/write
+float Hp = HealthComp.CurrentHealth;    // BlueprintReadOnly -> read only
+HealthComp.TakeDamage(50.f);           // BlueprintCallable -> callable
+```
+
+Classes can be skipped for automatic bindings by adding the `NotInAngelscript` metadata:
+
+```cpp
+UCLASS(BlueprintType, meta = (NotInAngelscript))
+class UInternalOnlyClass : public UObject { /* ... */ };
+```
 
 ### Struct Bindings
 
 Structs in C++ that are marked with `USTRUCT()` are automatically bound either when they have the `BlueprintType` specifier, or if they contain any properties that are blueprint-accessible or editable.
+
+```cpp
+USTRUCT(BlueprintType)
+struct FDamageInfo
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite)
+    float Amount = 0.f;
+
+    UPROPERTY(BlueprintReadWrite)
+    AActor* Instigator = nullptr;
+
+    UPROPERTY(BlueprintReadWrite)
+    EDamageType Type = EDamageType::Physical;
+};
+```
+
+```angelscript
+// Structs are value types in Angelscript
+FDamageInfo Info;
+Info.Amount = 25.f;
+Info.Instigator = Player;
+Info.Type = EDamageType::Fire;
+```
 
 Structs can be skipped for automatic bindings by adding the `NoAutoAngelscriptBind` metadata.
 
@@ -882,13 +945,37 @@ C++ `UPROPERTY`s that are declared with `BlueprintReadWrite` or `BlueprintReadOn
 
 If the property is `BlueprintReadOnly`, it will become `const` and unable to be changed from script.
 
-To expose a property to Angelscript without exposing it to blueprint, you can use the `ScriptReadWrite` or `ScriptReadOnly` specifiers.
+To expose a property to Angelscript without exposing it to blueprint, you can use the `ScriptReadWrite` or `ScriptReadOnly` specifiers:
+
+```cpp
+// Visible to Angelscript but NOT to Blueprint
+UPROPERTY(ScriptReadWrite)
+int32 InternalCounter;
+
+UPROPERTY(ScriptReadOnly)
+FString CachedResult;
+```
 
 #### Editable Flags
 
 Properties that are declared with any of the editable flags (`EditAnywhere`, `EditInstanceOnly` or `EditDefaultsOnly`) are also exposed to script.
 
 > **Note:** If a property has an editable flag, but not a blueprint access flag, it will **only** be accessible in script from inside a class `default` statement. *See [Default Statements](/scripting/actors-components/#default-statements).*
+
+```cpp
+// EditAnywhere WITHOUT BlueprintReadWrite:
+UPROPERTY(EditAnywhere, Category = "Config")
+float SpawnRate = 1.f;
+```
+
+```angelscript
+// Can only set via default statement, not in regular code:
+class AMySpawner : AActor
+{
+    default SpawnRate = 2.5f;  // OK — default statement
+    // SpawnRate = 3.f;        // ERROR — not accessible outside defaults
+}
+```
 
 #### Skipping Properties
 
@@ -900,13 +987,35 @@ Properties can be skipped for angelscript binds even if they are otherwise acces
 
 Any C++ `UFUNCTION` that has `BlueprintCallable` or `BlueprintPure` is automatically bound to script.
 
-To expose a function to Angelscript without exposing it to blueprint, you can use the `ScriptCallable` specifier.
+To expose a function to Angelscript without exposing it to blueprint, you can use the `ScriptCallable` specifier:
+
+```cpp
+// Available in Angelscript but NOT in Blueprint graphs
+UFUNCTION(ScriptCallable)
+void DebugDumpState();
+```
 
 #### Blueprint Events
 
-`UFUNCTION`s with the `BlueprintImplementableEvent` and `BlueprintNativeEvent` specifiers can be overridden from script as well as blueprint.
+`UFUNCTION`s with the `BlueprintImplementableEvent` and `BlueprintNativeEvent` specifiers can be overridden from script using `BlueprintOverride`:
 
-> See [Overriding BlueprintEvents from C++](/scripting/functions-and-events/#overriding-blueprintevents-from-c)
+```cpp
+// C++ declaration
+UFUNCTION(BlueprintImplementableEvent)
+void OnInteract(AActor* Interactor);
+```
+
+```angelscript
+// Angelscript override
+class AMyInteractable : AInteractableBase
+{
+    UFUNCTION(BlueprintOverride)
+    void OnInteract(AActor Interactor)
+    {
+        Print(f"Interacted by {Interactor.GetName()}");
+    }
+}
+```
 
 #### Skipping Functions
 
@@ -922,11 +1031,65 @@ There is no deprecation warning functionality in script, so engine upgrades may 
 
 Static functions declared on `UCLASS`es are bound as namespaced global functions in script.
 
+```cpp
+// C++ static function on a class
+UCLASS()
+class UMyBlueprintLibrary : public UBlueprintFunctionLibrary
+{
+    UFUNCTION(BlueprintCallable, Category = "Utils")
+    static FVector GetRandomPointInBox(const FVector& Origin, const FVector& Extent);
+};
+```
+
+```angelscript
+// In Angelscript, called via simplified namespace:
+FVector Point = MyBlueprintLibrary::GetRandomPointInBox(Origin, Extent);
+// Or after namespace simplification (if unambiguous):
+FVector Point = GetRandomPointInBox(Origin, Extent);
+```
+
 Note that for static functions only, the name of the class will go through [Namespace Simplification](/scripting/function-libraries/#namespace-simplification) when they are bound.
 
 ### Enum Bindings
 
 Any `UENUM()` declared in C++ is automatically usable in script.
+
+```cpp
+UENUM(BlueprintType)
+enum class EDamageType : uint8
+{
+    Physical,
+    Fire,
+    Ice,
+    Lightning
+};
+```
+
+```angelscript
+// Used directly by name in Angelscript:
+EDamageType DmgType = EDamageType::Fire;
+
+if (DmgType == EDamageType::Ice)
+    ApplySlowEffect();
+```
+
+### Binding Summary Table
+
+| C++ Specifier | Angelscript Access | Notes |
+|---|---|---|
+| `BlueprintType` | Class/struct available | Required for type to be bound |
+| `BlueprintReadWrite` | Read + write | Full property access |
+| `BlueprintReadOnly` | Read only (`const`) | Cannot assign in script |
+| `ScriptReadWrite` | Read + write | Script-only, hidden from Blueprint |
+| `ScriptReadOnly` | Read only | Script-only, hidden from Blueprint |
+| `EditAnywhere` (no BP flag) | `default` statement only | Cannot use in function bodies |
+| `BlueprintCallable` | Callable | Standard function binding |
+| `BlueprintPure` | Callable (no side effects) | Can be used in expressions |
+| `ScriptCallable` | Callable | Script-only, hidden from Blueprint |
+| `BlueprintImplementableEvent` | Override with `BlueprintOverride` | Script provides implementation |
+| `BlueprintNativeEvent` | Override with `BlueprintOverride` | Script can override C++ default |
+| `NotInAngelscript` | Hidden | Skipped during binding |
+| `NoAutoAngelscriptBind` | Hidden (structs) | Skipped during binding |
 
 ## Script Mixin Libraries
 
