@@ -6,6 +6,10 @@ import { registerDocumentationTools } from "./tools/documentation.js";
 import { registerScriptTools } from "./tools/scripts.js";
 import { registerBuildTools } from "./tools/build.js";
 import { registerProjectTools } from "./tools/project.js";
+import { registerIntrospectionTools } from "./tools/introspection.js";
+import { registerDiagnosticTools } from "./tools/diagnostics.js";
+import { registerScaffoldTools } from "./tools/scaffold.js";
+import { registerBuilderTools } from "./tools/builder.js";
 
 const server = new McpServer({
   name: "ue-angelscript",
@@ -17,6 +21,10 @@ registerDocumentationTools(server);
 registerScriptTools(server);
 registerBuildTools(server);
 registerProjectTools(server);
+registerIntrospectionTools(server);
+registerDiagnosticTools(server);
+registerScaffoldTools(server);
+registerBuilderTools(server);
 
 async function main() {
   const transport = new StdioServerTransport();

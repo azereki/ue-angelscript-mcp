@@ -12,7 +12,11 @@ Built for the [UE-AS engine fork](https://github.com/Hazelight/UnrealEngine-Ange
 | `as_list_scripts` | List `.as` files in project script directories | Project path |
 | `as_read_script` | Read a script file with optional line range | Project path |
 | `as_search_scripts` | Regex search across all `.as` files | Project path |
+| `as_find_cpp_binding` | Grep engine C++ source for Angelscript binds (e.g. `METHOD`, `FUNC`) | Engine path |
+| `as_check_script_errors` | Check the latest Unreal Engine log for script compilation errors | Project path |
+| `as_scaffold` | Generate idiomatic boilerplate for AS classes (Actors, Widgets, etc.) | Nothing |
 | `as_run_tests` | Run Angelscript unit tests via commandlet | Project path + editor binary |
+| `as_build_engine` | Trigger UnrealBuildTool to compile the project or engine | Engine path |
 | `as_get_script_roots` | List script root directories | Nothing (enhanced with editor) |
 | `as_project_info` | Project overview with configuration status | Nothing |
 
