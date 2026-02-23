@@ -117,6 +117,16 @@ Test interactively with MCP Inspector:
 npx @modelcontextprotocol/inspector node build/index.js
 ```
 
+## Attribution & Acknowledgments
+
+This project incorporates architectural patterns (specifically the Async Task Queue and the Python Editor Bridge) adapted from the excellent **UE5 MCP Server**.
+
+- **Project**: UE5 MCP Server
+- **Author**: Natali Caggiano (Natfii)
+- **Link**: [https://github.com/Natfii/unrealclaude-mcp-bridge](https://github.com/Natfii/unrealclaude-mcp-bridge)
+
+See `THIRD-PARTY-NOTICES.txt` for full license details.
+
 ## License
 
 MIT
