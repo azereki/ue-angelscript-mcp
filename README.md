@@ -22,6 +22,8 @@ Built for the [UE-AS engine fork](https://github.com/Hazelight/UnrealEngine-Ange
 | `as_editor_status` | Ping the Python Editor Bridge | Editor Bridge |
 | `as_get_level_actors` | Get all actors in the current level | Editor Bridge |
 | `as_execute_python` | Execute arbitrary Python code inside the Editor | Editor Bridge |
+| `as_spawn_actor` | Spawn an actor from a class path at a location | Editor Bridge |
+| `as_focus_viewport` | Focus the Editor camera on an actor or location | Editor Bridge |
 | `as_get_script_roots` | List script root directories | Nothing (enhanced with editor) |
 | `as_project_info` | Project overview with configuration status | Nothing |
 
