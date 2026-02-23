@@ -17,6 +17,11 @@ Built for the [UE-AS engine fork](https://github.com/Hazelight/UnrealEngine-Ange
 | `as_scaffold` | Generate idiomatic boilerplate for AS classes (Actors, Widgets, etc.) | Nothing |
 | `as_run_tests` | Run Angelscript unit tests via commandlet | Project path + editor binary |
 | `as_build_engine` | Trigger UnrealBuildTool to compile the project or engine | Engine path |
+| `as_task_status` | Check the status of a running background task | Nothing |
+| `as_task_list` | List all background tasks | Nothing |
+| `as_editor_status` | Ping the Python Editor Bridge | Editor Bridge |
+| `as_get_level_actors` | Get all actors in the current level | Editor Bridge |
+| `as_execute_python` | Execute arbitrary Python code inside the Editor | Editor Bridge |
 | `as_get_script_roots` | List script root directories | Nothing (enhanced with editor) |
 | `as_project_info` | Project overview with configuration status | Nothing |
 
