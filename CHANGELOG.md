@@ -5,10 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-22
+
+### Added
+- **Python Editor Bridge**: `ue_angelscript_bridge.py` allows the MCP server to communicate with the running Unreal Engine Editor via HTTP.
+- **Editor Tools**:
+  - `as_editor_status`: Ping the Python Editor Bridge to verify the connection.
+  - `as_get_level_actors`: Fetch all actors in the currently loaded level dynamically.
+  - `as_execute_python`: Execute arbitrary Python code on the Game Thread, returning stdout/stderr and evaluated variables.
+- **Async Task Queue**:
+  - Added `as_task_status` and `as_task_list` to poll long-running background processes and avoid MCP client timeouts.
+- **Builder Integration**:
+  - `as_build_engine`: Trigger UnrealBuildTool (`Build.bat`/`Build.sh`) to compile the project or engine. Operates via the new Async Task Queue.
+- **Scaffolding Tool**:
+  - `as_scaffold`: Generate idiomatic Angelscript boilerplate for Unreal Engine classes (`Actor`, `Component`, `Widget`, `Subsystem`, `UnitTest`, `IntegrationTest`).
+- **C++ Introspection**:
+  - `as_find_cpp_binding`: Search the engine's `AngelscriptCode/Private/Binds` directly using Regex to discover exact signatures of C++ macros exported to Angelscript (`METHOD`, `FUNC`, `UPROPERTY`).
+- **Attribution**:
+  - Added `THIRD-PARTY-NOTICES.txt` and updated `README.md` to properly attribute the Async Task Queue and Python Editor Bridge architectural patterns adapted from the UE5 MCP Server project (by Natali Caggiano / Natfii).
+
 ## [0.1.0] - 2026-02-16
 
 ### Added
-
 - `as_get_context` tool for querying bundled Angelscript documentation by category or keyword
 - `as_list_scripts` tool for listing `.as` files in project script directories
 - `as_read_script` tool for reading script files with optional line ranges and path traversal protection
