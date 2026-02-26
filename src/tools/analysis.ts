@@ -4,6 +4,7 @@ import fs from "fs";
 import { getScriptRoots } from "../config.js";
 import { scanForScripts } from "../util/file-scanner.js";
 import { logger } from "../util/logger.js";
+import { parseAngelscriptAST } from "../util/ast-parser.js";
 
 // Helper to escape regex special characters
 function escapeRegExp(string: string) {
@@ -26,106 +27,55 @@ export function registerAnalysisTools(server: McpServer): void {
 
       try {
         const content = fs.readFileSync(filePath, "utf-8");
-        
-        const result: any = {
-          file: filePath,
-          classes: [],
-          structs: [],
-          enums: [],
-          functions: [],
-          delegates: [],
-        };
-
-        // This is a naive regex-based parser, sufficient for high-level structure
-
-        // 1. Classes
-        const classRegex = /(?:UCLASS\s*\([^)]*\)\s*)?class\s+([A-Za-z_]\w*)(?:\s*:\s*([A-Za-z_][\w:]*))?/g;
-        let match;
-        while ((match = classRegex.exec(content)) !== null) {
-          result.classes.push({
-            name: match[1],
-            parent: match[2] || null,
-          });
-        }
-
-        // 2. Structs
-        const structRegex = /(?:USTRUCT\s*\([^)]*\)\s*)?struct\s+([A-Za-z_]\w*)/g;
-        while ((match = structRegex.exec(content)) !== null) {
-          result.structs.push({
-            name: match[1],
-          });
-        }
-
-        // 3. Enums
-        const enumRegex = /(?:UENUM\s*\([^)]*\)\s*)?enum\s+([A-Za-z_]\w*)/g;
-        while ((match = enumRegex.exec(content)) !== null) {
-          result.enums.push({
-            name: match[1],
-          });
-        }
-
-        // 4. Delegates
-        const delegateRegex = /delegate\s+(?:[A-Za-z_][\w<>]*\s+)+([A-Za-z_]\w*)\s*\([^)]*\)/g;
-        while ((match = delegateRegex.exec(content)) !== null) {
-          result.delegates.push({
-            name: match[1],
-          });
-        }
-
-        // 5. Global Functions (approximate)
-        // Match things like `UFUNCTION() void MyFunc()` or just `void MyFunc()`
-        // Excludes things that look like flow control (if, while, for)
-        const funcRegex = /(?:UFUNCTION\s*\([^)]*\)\s*)?(?:[A-Za-z_][\w<>]*\s+)+(?!if|while|for|switch|return)([A-Za-z_]\w*)\s*\([^)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|;)/g;
-        while ((match = funcRegex.exec(content)) !== null) {
-          // We don't distinguish class methods from global functions easily with naive regex, 
-          // so we just list all function names found.
-          if (!result.functions.includes(match[1])) {
-            result.functions.push(match[1]);
-          }
-        }
+        const ast = parseAngelscriptAST(content);
 
         let output = `AST Summary for ${filePath}:\n\n`;
         
-        if (result.classes.length > 0) {
+        if (ast.classes.length > 0) {
           output += "Classes:\n";
-          for (const c of result.classes) {
+          for (const c of ast.classes) {
             output += `  - class ${c.name}${c.parent ? ` : ${c.parent}` : ""}\n`;
+            for (const p of c.properties) output += `      [P] ${p}\n`;
+            for (const m of c.methods) output += `      [M] ${m}()\n`;
           }
           output += "\n";
         }
 
-        if (result.structs.length > 0) {
+        if (ast.structs.length > 0) {
           output += "Structs:\n";
-          for (const s of result.structs) {
+          for (const s of ast.structs) {
             output += `  - struct ${s.name}\n`;
+            for (const p of s.properties) output += `      [P] ${p}\n`;
+            for (const m of s.methods) output += `      [M] ${m}()\n`;
           }
           output += "\n";
         }
 
-        if (result.enums.length > 0) {
+        if (ast.enums.length > 0) {
           output += "Enums:\n";
-          for (const e of result.enums) {
+          for (const e of ast.enums) {
             output += `  - enum ${e.name}\n`;
+            for (const v of e.values) output += `      ${v}\n`;
           }
           output += "\n";
         }
 
-        if (result.delegates.length > 0) {
+        if (ast.delegates.length > 0) {
           output += "Delegates:\n";
-          for (const d of result.delegates) {
-            output += `  - ${d.name}\n`;
+          for (const d of ast.delegates) {
+            output += `  - ${d}\n`;
           }
           output += "\n";
         }
 
-        if (result.functions.length > 0) {
-          output += "Functions/Methods:\n";
-          for (const f of result.functions) {
+        if (ast.globalFunctions.length > 0) {
+          output += "Global Functions:\n";
+          for (const f of ast.globalFunctions) {
             output += `  - ${f}()\n`;
           }
         }
 
-        if (Object.values(result).every(arr => Array.isArray(arr) && arr.length === 0)) {
+        if (Object.values(ast).every(arr => Array.isArray(arr) && arr.length === 0)) {
           output += "No definitions found or file is empty.";
         }
 
