@@ -217,4 +217,55 @@ else:
       }
     }
   );
+
+  server.tool(
+    "as_execute_snippet",
+    "Execute arbitrary Angelscript code in the running Unreal Editor by generating a temporary function, hot reloading it, and calling it. Requires the Editor Bridge and an active Angelscript project.",
+    {
+      code: z.string().describe("The Angelscript code snippet to execute. It will be wrapped in a global function and executed. Example: 'Print(\"Hello World\");'"),
+    },
+    async (args) => {
+      // Use the python bridge to generate a temporary .as file, wait for hot reload, and then call it via console.
+      const snippetCode = `
+import unreal
+import os
+import time
+
+project_dir = unreal.SystemLibrary.get_project_directory()
+temp_file_path = os.path.join(project_dir, "Script", "TempSnippet_MCP.as")
+
+os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+
+as_code = """
+UFUNCTION(BlueprintCallable, Category = "MCP")
+void ExecuteTempSnippet_MCP()
+{
+${args.code.split('\\n').map(line => '    ' + line).join('\\n')}
+}
+"""
+
+try:
+    with open(temp_file_path, 'w') as f:
+        f.write(as_code)
+    
+    # Wait a moment for the directory watcher to pick it up and hot reload
+    time.sleep(1.5)
+    
+    # Execute the function using the 'ce' console command (Call Event)
+    unreal.SystemLibrary.execute_console_command(None, "ce ExecuteTempSnippet_MCP")
+    
+    result = "Snippet executed successfully."
+except Exception as e:
+    result = f"Error executing snippet: {e}"
+`;
+
+      try {
+        const data = await fetchFromBridge("/execute/python", "POST", { code: snippetCode });
+        if (data.error) return { content: [{ type: "text" as const, text: `Error: ${data.error}\n${data.traceback}` }] };
+        return { content: [{ type: "text" as const, text: data.result || "Executed." }] };
+      } catch (e: any) {
+        return { content: [{ type: "text" as const, text: e.message }] };
+      }
+    }
+  );
 }
